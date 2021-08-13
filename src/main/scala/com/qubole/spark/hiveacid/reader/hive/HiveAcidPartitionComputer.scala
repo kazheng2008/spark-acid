@@ -20,7 +20,6 @@
 package com.qubole.spark.hiveacid.reader.hive
 
 import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
-
 import com.qubole.shaded.hadoop.hive.common.{ValidReaderWriteIdList, ValidWriteIdList}
 import com.qubole.spark.hiveacid.rdd.{HiveAcidPartition, HiveAcidRDD, HiveSplitInfo}
 import com.qubole.spark.hiveacid.reader.hive.HiveAcidPartitionComputer.{addToPartitionCache, getInputFormat}
@@ -29,8 +28,8 @@ import org.apache.hadoop.conf.Configurable
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, InvalidInputException, JobConf}
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.util.ReflectionUtils
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 
@@ -40,7 +39,8 @@ private[hiveacid] case class HiveAcidPartitionComputer(ignoreEmptySplits: Boolea
                     inputFormat: InputFormat[K, V],
                     minPartitions: Int): Array[HiveAcidPartition] = {
     // add the credentials here as this can be called before SparkContext initialized
-    SparkHadoopUtil.get.addCredentials(jobConf)
+    val jobCreds = jobConf.getCredentials()
+    jobCreds.mergeAll(UserGroupInformation.getCurrentUser().getCredentials())
     try {
       val allInputSplits = inputFormat.getSplits(jobConf, minPartitions)
       val inputSplits = if (ignoreEmptySplits) {

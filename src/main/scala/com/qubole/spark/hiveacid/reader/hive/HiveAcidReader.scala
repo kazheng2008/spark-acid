@@ -21,7 +21,6 @@ package com.qubole.spark.hiveacid.reader.hive
 
 import java.util
 import java.util.Properties
-
 import scala.collection.JavaConverters._
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Output
@@ -46,11 +45,11 @@ import com.qubole.spark.hiveacid.util._
 import org.apache.commons.codec.binary.Base64
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, PathFilter}
-import org.apache.hadoop.hive.serde2.ColumnProjectionUtils
+import com.qubole.shaded.hadoop.hive.serde2.ColumnProjectionUtils
 import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf}
+import org.apache.spark.SparkConf
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SparkSession, functions}
@@ -61,7 +60,6 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.Filter
-import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.sql.hive.{Hive3Inspectors, HiveAcidUtils}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
@@ -88,8 +86,7 @@ extends CastSupport with Reader with Logging {
       sparkSession.sparkContext.defaultMinPartitions)
   }
 
-  SparkHadoopUtil.get.appendS3AndSparkHadoopConfigurations(
-    sparkSession.sparkContext.getConf, readerOptions.hadoopConf)
+  appendS3AndSparkHadoopHiveConfigurations(sparkSession.sparkContext.getConf, readerOptions.hadoopConf)
 
   if (readerOptions.readConf.predicatePushdownEnabled) {
     setPushDownFiltersInHadoopConf(readerOptions.hadoopConf, hiveAcidOptions.dataSchema,
@@ -416,6 +413,49 @@ extends CastSupport with Reader with Logging {
       logDebug(s"searchArgument: $f")
       conf.set("sarg.pushdown", toKryo(f))
       conf.setBoolean(ConfVars.HIVEOPTINDEXFILTER.varname, true)
+    }
+  }
+
+  private def appendS3AndSparkHadoopHiveConfigurations(
+                                                        conf: SparkConf,
+                                                        hadoopConf: Configuration): Unit = {
+    // Note: this null check is around more than just access to the "conf" object to maintain
+    // the behavior of the old implementation of this code, for backwards compatibility.
+    if (conf != null) {
+      // Explicitly check for S3 environment variables
+      val keyId = System.getenv("AWS_ACCESS_KEY_ID")
+      val accessKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+      if (keyId != null && accessKey != null) {
+        hadoopConf.set("fs.s3.awsAccessKeyId", keyId)
+        hadoopConf.set("fs.s3n.awsAccessKeyId", keyId)
+        hadoopConf.set("fs.s3a.access.key", keyId)
+        hadoopConf.set("fs.s3.awsSecretAccessKey", accessKey)
+        hadoopConf.set("fs.s3n.awsSecretAccessKey", accessKey)
+        hadoopConf.set("fs.s3a.secret.key", accessKey)
+
+        val sessionToken = System.getenv("AWS_SESSION_TOKEN")
+        if (sessionToken != null) {
+          hadoopConf.set("fs.s3a.session.token", sessionToken)
+        }
+      }
+      appendSparkHadoopConfigs(conf, hadoopConf)
+      appendSparkHiveConfigs(conf, hadoopConf)
+      val bufferSize = 65536.toString()
+      hadoopConf.set("io.file.buffer.size", bufferSize)
+    }
+  }
+
+  private def appendSparkHadoopConfigs(conf: SparkConf, hadoopConf: Configuration): Unit = {
+    // Copy any "spark.hadoop.foo=bar" spark properties into conf as "foo=bar"
+    for ((key, value) <- conf.getAll if key.startsWith("spark.hadoop.")) {
+      hadoopConf.set(key.substring("spark.hadoop.".length), value)
+    }
+  }
+
+  private def appendSparkHiveConfigs(conf: SparkConf, hadoopConf: Configuration): Unit = {
+    // Copy any "spark.hive.foo=bar" spark properties into conf as "hive.foo=bar"
+    for ((key, value) <- conf.getAll if key.startsWith("spark.hive.")) {
+      hadoopConf.set(key.substring("spark.".length), value)
     }
   }
 }

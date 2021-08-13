@@ -23,7 +23,6 @@ import java.io.{FileNotFoundException, IOException}
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import java.util.{Date, Locale}
-
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -37,11 +36,11 @@ import org.apache.hadoop.conf.{Configurable, Configuration}
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapred.{FileInputFormat, _}
 import org.apache.hadoop.mapreduce.TaskType
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.util.ReflectionUtils
 import org.apache.spark.{Partitioner, _}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
@@ -208,7 +207,8 @@ private[hiveacid] class HiveAcidRDD[K, V](sc: SparkContext,
       broadcastedConf, shouldCloneJobConf, initLocalJobConfFuncOpt)
 
     // add the credentials here as this can be called before SparkContext initialized
-    SparkHadoopUtil.get.addCredentials(jobConf)
+    val jobCreds = jobConf.getCredentials()
+    jobCreds.mergeAll(UserGroupInformation.getCurrentUser().getCredentials())
     val paths = FileInputFormat.getInputPaths(jobConf)
     val partitions = HiveAcidPartitionComputer.getFromSplitsCache(paths, validWriteIds)
     if (partitions.isDefined) {

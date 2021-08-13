@@ -57,7 +57,7 @@ case object PostProcessor extends SqlHiveBaseListener {
   private def replaceTokenByIdentifier(
                                         ctx: ParserRuleContext,
                                         stripMargins: Int)(
-                                        f: CommonToken => CommonToken = identity): Unit = {
+                                        f: CommonToken => CommonToken): Unit = {
     val parent = ctx.getParent
     parent.removeLastChild()
     val token = ctx.getChild(0).getPayload.asInstanceOf[Token]

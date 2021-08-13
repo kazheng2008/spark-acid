@@ -22,7 +22,7 @@ import com.qubole.spark.hiveacid.datasource.HiveAcidDataSource
 import com.qubole.spark.hiveacid.merge.{MergeWhenClause, MergeWhenNotInsert}
 import com.qubole.spark.hiveacid.rdd.EmptyRDD
 import com.qubole.spark.hiveacid.transaction._
-import org.apache.spark.annotation.InterfaceStability.Evolving
+import org.apache.spark.annotation.Evolving
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, _}
@@ -287,7 +287,7 @@ private class HiveTxnWrapper(sparkSession: SparkSession) extends Logging {
 
   // End and reset transaction and snapshot
   // if locally started
-  private def unsetOrEndTxn(abort: Boolean = false): Unit = {
+  private def unsetOrEndTxn(abort: Boolean): Unit = {
     if (!isValidStateTransition(TxnWrapperState.CLOSE)) {
       throw new IllegalArgumentException(s"Transition from $currentState to ${TxnWrapperState.CLOSE} is not allowed")
     }

@@ -4,15 +4,14 @@ version := sys.props.getOrElse("package.version", "0.1")
 
 organization:= "com.qubole"
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.10"
 
 scalacOptions ++= Seq(
 	"-Xlint",
 	"-Xfatal-warnings",
 	"-deprecation",
 	"-unchecked",
-	"-optimise",
-	"-Yinline-warnings"
+	"-optimise"
 )
 
 scalacOptions in (Compile, doc) ++= Seq(

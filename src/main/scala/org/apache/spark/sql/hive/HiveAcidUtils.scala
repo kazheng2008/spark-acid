@@ -23,7 +23,7 @@ import scala.collection.JavaConverters._
 import com.qubole.spark.hiveacid.hive.HiveAcidMetadata
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTablePartition, CatalogUtils}
-import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference, BoundReference, Expression, InterpretedPredicate, PrettyAttribute}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, Expression, Predicate}
 
 object HiveAcidUtils {
 
@@ -56,7 +56,7 @@ object HiveAcidUtils {
       }
 
       val boundPredicate =
-        InterpretedPredicate.create(predicates.get.transform {
+        Predicate.createInterpreted(predicates.get.transform {
           case att: Attribute =>
             val index = partitionSchema.indexWhere(_.name == att.name)
             BoundReference(index, partitionSchema(index).dataType, nullable = true)

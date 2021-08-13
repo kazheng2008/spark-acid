@@ -20,7 +20,6 @@
 package com.qubole.spark.hiveacid.writer
 
 import scala.collection.JavaConverters._
-import scala.language.implicitConversions
 import com.qubole.spark.hiveacid._
 import com.qubole.spark.hiveacid.hive.HiveAcidMetadata
 import com.qubole.spark.hiveacid.writer.hive.{HiveAcidFullAcidWriter, HiveAcidInsertOnlyWriter, HiveAcidWriterOptions}

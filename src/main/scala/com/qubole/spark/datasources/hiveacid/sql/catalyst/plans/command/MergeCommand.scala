@@ -21,11 +21,10 @@ import com.qubole.spark.hiveacid.HiveAcidErrors
 import com.qubole.spark.hiveacid.datasource.HiveAcidRelation
 import com.qubole.spark.hiveacid.merge.{MergeCondition, MergeWhenClause, MergeWhenNotInsert}
 import org.apache.spark.sql.catalyst.AliasIdentifier
-import org.apache.spark.sql.catalyst.analysis.EliminateSubqueryAliases
 import org.apache.spark.sql.catalyst.catalog.{CatalogTable, HiveTableRelation}
 import org.apache.spark.sql.{Row, SparkSession, SqlUtils}
-import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
-import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
+import org.apache.spark.sql.catalyst.expressions.Attribute
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.command.RunnableCommand
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 

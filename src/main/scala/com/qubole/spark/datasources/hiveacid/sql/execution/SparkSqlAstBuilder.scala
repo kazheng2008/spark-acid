@@ -174,14 +174,14 @@ class SparkSqlAstBuilder(conf: SQLConf) extends AstBuilder(conf) {
     val targetAlias = if (ctx.targetAlias != null) {
       val alias: SubqueryAlias = aliasPlan(ctx.targetAlias, targetRelation)
       targetRelation = alias
-      Some(alias.name)
+      Some(alias.identifier)
     } else {
       None
     }
     val sourceAlias = if (ctx.sourceAlias != null) {
       val alias = aliasPlan(ctx.sourceAlias, sourceRelation)
       sourceRelation = alias
-      Some(alias.name)
+      Some(alias.identifier)
     } else {
       None
     }

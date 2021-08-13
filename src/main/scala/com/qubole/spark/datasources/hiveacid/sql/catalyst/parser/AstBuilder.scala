@@ -2,9 +2,9 @@ package com.qubole.spark.datasources.hiveacid.sql.catalyst.parser
 
 import java.sql.{Date, Timestamp}
 import java.util.Locale
-
 import com.qubole.spark.datasources.hiveacid.sql.catalyst.parser.SqlHiveParser._
 import com.qubole.spark.datasources.hiveacid.sql.catalyst.parser.{SqlHiveParser => SqlBaseParser}
+
 import javax.xml.bind.DatatypeConverter
 import org.antlr.v4.runtime.tree.{ParseTree, RuleNode, TerminalNode}
 import org.antlr.v4.runtime.{ParserRuleContext, Token}
@@ -19,7 +19,8 @@ import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.{FunctionIdentifier, TableIdentifier}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
-import org.apache.spark.unsafe.types.CalendarInterval
+import org.apache.spark.unsafe.types.{CalendarInterval, UTF8String}
+import org.apache.spark.sql.catalyst.util.IntervalUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -94,57 +95,6 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
     ctx match {
       case s: StringLiteralContext => createString(s)
       case o => o.getText
-    }
-  }
-
-  /**
-   * Add ORDER BY/SORT BY/CLUSTER BY/DISTRIBUTE BY/LIMIT/WINDOWS clauses to the logical plan. These
-   * clauses determine the shape (ordering/partitioning/rows) of the query result.
-   */
-  private def withQueryResultClauses(
-      ctx: QueryOrganizationContext,
-      query: LogicalPlan): LogicalPlan = withOrigin(ctx) {
-    import ctx._
-
-    // Handle ORDER BY, SORT BY, DISTRIBUTE BY, and CLUSTER BY clause.
-    val withOrder = if (
-      !order.isEmpty && sort.isEmpty && distributeBy.isEmpty && clusterBy.isEmpty) {
-      // ORDER BY ...
-      Sort(order.asScala.map(visitSortItem), global = true, query)
-    } else if (order.isEmpty && !sort.isEmpty && distributeBy.isEmpty && clusterBy.isEmpty) {
-      // SORT BY ...
-      Sort(sort.asScala.map(visitSortItem), global = false, query)
-    } else if (order.isEmpty && sort.isEmpty && !distributeBy.isEmpty && clusterBy.isEmpty) {
-      // DISTRIBUTE BY ...
-      withRepartitionByExpression(ctx, expressionList(distributeBy), query)
-    } else if (order.isEmpty && !sort.isEmpty && !distributeBy.isEmpty && clusterBy.isEmpty) {
-      // SORT BY ... DISTRIBUTE BY ...
-      Sort(
-        sort.asScala.map(visitSortItem),
-        global = false,
-        withRepartitionByExpression(ctx, expressionList(distributeBy), query))
-    } else if (order.isEmpty && sort.isEmpty && distributeBy.isEmpty && !clusterBy.isEmpty) {
-      // CLUSTER BY ...
-      val expressions = expressionList(clusterBy)
-      Sort(
-        expressions.map(SortOrder(_, Ascending)),
-        global = false,
-        withRepartitionByExpression(ctx, expressions, query))
-    } else if (order.isEmpty && sort.isEmpty && distributeBy.isEmpty && clusterBy.isEmpty) {
-      // [EMPTY]
-      query
-    } else {
-      throw new ParseException(
-        "Combination of ORDER BY/SORT BY/DISTRIBUTE BY/CLUSTER BY is not supported", ctx)
-    }
-
-    // WINDOWS
-    val withWindow = withOrder.optionalMap(windows)(withWindows)
-
-    // LIMIT
-    // - LIMIT ALL is the same as omitting the LIMIT clause
-    withWindow.optional(limit) {
-      Limit(typedVisit(limit), withWindow)
     }
   }
 
@@ -292,7 +242,7 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
   override def visitFromClause(ctx: FromClauseContext): LogicalPlan = withOrigin(ctx) {
     val from = ctx.relation.asScala.foldLeft(null: LogicalPlan) { (left, relation) =>
       val right = plan(relation.relationPrimary)
-      val join = right.optionalMap(left)(Join(_, _, Inner, None))
+      val join = right.optionalMap(left)(Join(_, _, Inner, None, JoinHint(None, None)))
       withJoinRelations(join, relation)
     }
     if (ctx.pivotClause() != null) {
@@ -502,7 +452,7 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
           case None =>
             (baseJoinType, None)
         }
-        Join(left, plan(join.right), joinType, condition)
+        Join(left, plan(join.right), joinType, condition, JoinHint(None, None))
       }
     }
   }
@@ -904,7 +854,7 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
       case SqlBaseParser.IN =>
         invertIfNotDefined(In(e, ctx.expression.asScala.map(expression)))
       case SqlBaseParser.LIKE =>
-        invertIfNotDefined(Like(e, expression(ctx.pattern)))
+        invertIfNotDefined(Like(e, expression(ctx.pattern), '\\'))
       case SqlBaseParser.RLIKE =>
         invertIfNotDefined(RLike(e, expression(ctx.pattern)))
       case SqlBaseParser.NULL if ctx.NOT != null =>
@@ -994,7 +944,7 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
    */
   override def visitFirst(ctx: FirstContext): Expression = withOrigin(ctx) {
     val ignoreNullsExpr = ctx.IGNORE != null
-    First(expression(ctx.expression), Literal(ignoreNullsExpr)).toAggregateExpression()
+    First(expression(ctx.expression), ignoreNullsExpr).toAggregateExpression()
   }
 
   /**
@@ -1002,7 +952,7 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
    */
   override def visitLast(ctx: LastContext): Expression = withOrigin(ctx) {
     val ignoreNullsExpr = ctx.IGNORE != null
-    Last(expression(ctx.expression), Literal(ignoreNullsExpr)).toAggregateExpression()
+    Last(expression(ctx.expression), ignoreNullsExpr).toAggregateExpression()
   }
 
   /**
@@ -1462,7 +1412,7 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
   override def visitInterval(ctx: IntervalContext): Literal = withOrigin(ctx) {
     val intervals = ctx.intervalField.asScala.map(visitIntervalField)
     validate(intervals.nonEmpty, "at least one time unit should be given for interval literal", ctx)
-    Literal(intervals.reduce(_.add(_)))
+    Literal(intervals.reduce(IntervalUtils.add(_, _)))
   }
 
   /**
@@ -1479,13 +1429,13 @@ class AstBuilder(conf: SQLConf) extends SqlHiveBaseVisitor[AnyRef] with Logging 
       val interval = (unitText, Option(to).map(_.getText.toLowerCase(Locale.ROOT))) match {
         case (u, None) if u.endsWith("s") =>
           // Handle plural forms, e.g: yearS/monthS/weekS/dayS/hourS/minuteS/hourS/...
-          CalendarInterval.fromSingleUnitString(u.substring(0, u.length - 1), s)
+          IntervalUtils.stringToInterval(UTF8String.fromString(s + " " + u.substring(0, u.length - 1)))
         case (u, None) =>
-          CalendarInterval.fromSingleUnitString(u, s)
+          IntervalUtils.stringToInterval(UTF8String.fromString(s + " " + u))
         case ("year", Some("month")) =>
-          CalendarInterval.fromYearMonthString(s)
+          IntervalUtils.fromYearMonthString(s)
         case ("day", Some("second")) =>
-          CalendarInterval.fromDayTimeString(s)
+          IntervalUtils.fromDayTimeString(s)
         case (from, Some(t)) =>
           throw new ParseException(s"Intervals FROM $from TO $t are not supported.", ctx)
       }

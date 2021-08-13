@@ -34,7 +34,6 @@ import org.apache.spark.sql.SqlUtils
 import com.qubole.shaded.thrift.TException
 
 import scala.collection.JavaConversions._
-import scala.language.implicitConversions
 
 /**
  * Txn Manager for hive acid tables.

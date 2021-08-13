@@ -24,7 +24,7 @@ import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder, ResolverSt
 import java.time.temporal.ChronoField
 
 import scala.collection.JavaConverters._
-import com.qubole.shaded.hadoop.hive.common.`type`.{Date, HiveChar, HiveDecimal, HiveVarchar, Timestamp, TimestampUtils}
+import com.qubole.shaded.hadoop.hive.common.`type`.{Date, HiveChar, HiveDecimal, HiveVarchar, Timestamp}
 import com.qubole.shaded.hadoop.hive.serde2.{io => hiveIo}
 import com.qubole.shaded.hadoop.hive.serde2.objectinspector.{StructField => HiveStructField, _}
 import com.qubole.shaded.hadoop.hive.serde2.objectinspector.primitive._
@@ -48,7 +48,7 @@ trait Hive3Inspectors {
   val PARSE_FORMATTER = parse_formatter
 
   private def parse_formatter:DateTimeFormatter = {
-    var builder = new DateTimeFormatterBuilder
+    val builder = new DateTimeFormatterBuilder
     builder.appendValue(ChronoField.YEAR, 1, 10, SignStyle.NORMAL).appendLiteral('-').appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NORMAL).appendLiteral('-').appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NORMAL)
     builder.toFormatter.withResolverStyle(ResolverStyle.LENIENT)
   }

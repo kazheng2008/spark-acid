@@ -25,17 +25,15 @@ organization:= "com.qubole"
 	* Scala settings
 	*/
 
-crossScalaVersions := Seq("2.11.12")
+crossScalaVersions := Seq("2.12.10")
 
 scalaVersion := crossScalaVersions.value.head
 
 scalacOptions ++= Seq(
 	"-Xlint",
 	"-Xfatal-warnings",
-	"-deprecation",
-	"-unchecked",
-	"-optimise",
-	"-Yinline-warnings"
+	"-deprecation:false",
+	"-unchecked"
 )
 
 scalacOptions in (Compile, doc) ++= Seq(
@@ -45,7 +43,7 @@ scalacOptions in (Compile, doc) ++= Seq(
 /**************************
 	* Spark package settings
 	*/
-sparkVersion := sys.props.getOrElse("spark.version", "2.4.3")
+sparkVersion := sys.props.getOrElse("spark.version", "3.0.2")
 
 spIncludeMaven := true
 

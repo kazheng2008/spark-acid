@@ -20,7 +20,6 @@
 package org.apache.spark.sql
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
@@ -130,7 +129,8 @@ object SqlUtils {
                                      schema: StructType,
                                      attributes: Seq[Attribute]): DataFrame = {
     val encoder = RowEncoder(schema)
-    val catalystRows = rdd.map(encoder.toRow)
+    val toRow = encoder.createSerializer()
+    val catalystRows = rdd.map(toRow)
     val logicalPlan = LogicalRDD(
       attributes,
       catalystRows,

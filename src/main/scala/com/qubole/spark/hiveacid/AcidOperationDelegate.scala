@@ -201,7 +201,7 @@ class HiveAcidOperationDelegate(val sparkSession: SparkSession,
 
     val df = readDF(true)
     val (qualifiedPlan: LogicalPlan, resolvedDf: DataFrame) =
-      SqlUtils.getDFQualified(sparkSession, readDF(true), hiveAcidMetadata.fullyQualifiedName)
+      SqlUtils.getDFQualified(sparkSession, readDF(true), "spark_catalog." + hiveAcidMetadata.fullyQualifiedName)
 
     def toStrColumnMap(map: Map[String, Column]): Map[String, Column] = {
       map.toSeq.map { case (k, v) =>
@@ -314,7 +314,8 @@ class HiveAcidOperationDelegate(val sparkSession: SparkSession,
   def delete(condition: Column, curTxn: HiveAcidTxn): Unit = {
     checkForSupport(HiveAcidOperation.DELETE)
     val (qualifiedPlan: LogicalPlan, resolvedDf: DataFrame) =
-      SqlUtils.getDFQualified(sparkSession, readDF(true), hiveAcidMetadata.fullyQualifiedName)
+      SqlUtils.getDFQualified(sparkSession, readDF(true), "spark_catalog." + hiveAcidMetadata.fullyQualifiedName)
+    println("**********" + hiveAcidMetadata.fullyQualifiedName)
     val resolvedExpr = SqlUtils.resolveReferences(sparkSession,
       condition.expr,
       qualifiedPlan, failIfUnresolved = false)
