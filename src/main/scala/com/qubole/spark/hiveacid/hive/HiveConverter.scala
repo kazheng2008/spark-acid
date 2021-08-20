@@ -73,6 +73,9 @@ private[hiveacid] object HiveConverter extends Logging {
          """.stripMargin)
       hiveConf.set(k, v)
     }
+
+    hiveConf.set("metastore.task.threads.always", "com.qubole.shaded.hadoop.hive.metastore.repl.DumpDirCleanerTask,com.qubole.shaded.hadoop.hive.metastore.events.EventCleanerTask,com.qubole.shaded.hadoop.hive.metastore.RuntimeStatsCleanerTask")
+
     hiveConf
   }
 

@@ -50,7 +50,11 @@ libraryDependencies ++= Seq(
 	// To deal with hive3 metastore library 0.9.3 vs zeppelin thirft
 	// library version 0.9.1 conflict when runing Notebooks.
 	"org.apache.thrift" % "libfb303" % "0.9.3",
-	"org.apache.thrift" % "libthrift" % "0.9.3"
+	"org.apache.thrift" % "libthrift" % "0.9.3",
+
+        "commons-collections" % "commons-collections" % "3.2.2" intransitive(),
+        "commons-pool" % "commons-pool" % "1.5.4" intransitive(),
+        "commons-dbcp" % "commons-dbcp" % "1.4" intransitive()
 )
 
 

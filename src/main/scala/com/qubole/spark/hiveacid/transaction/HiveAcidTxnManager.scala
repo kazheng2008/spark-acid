@@ -48,10 +48,10 @@ private[hiveacid] class HiveAcidTxnManager(sparkSession: SparkSession) extends L
     MetastoreConf.ConfVars.TXN_TIMEOUT, TimeUnit.MILLISECONDS) / 3
 
   private lazy val client: IMetaStoreClient =
-    RetryingMetaStoreClient.getProxy(hiveConf, false)
+    RetryingMetaStoreClient.getProxy(hiveConf, true)
 
   private lazy val heartBeaterClient: IMetaStoreClient =
-    RetryingMetaStoreClient.getProxy(hiveConf, false)
+    RetryingMetaStoreClient.getProxy(hiveConf, true)
 
   // FIXME: Use thread pool so that we don't create multiple threads
   private val heartBeater: ScheduledExecutorService =
