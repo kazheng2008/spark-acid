@@ -43,7 +43,7 @@ scalacOptions in (Compile, doc) ++= Seq(
 /**************************
 	* Spark package settings
 	*/
-sparkVersion := sys.props.getOrElse("spark.version", "3.0.2")
+sparkVersion := sys.props.getOrElse("spark.version", "3.1.2")
 
 spIncludeMaven := true
 
