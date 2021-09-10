@@ -5,7 +5,7 @@ import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.atn.PredictionMode
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.{FunctionIdentifier, TableIdentifier}
+import org.apache.spark.sql.catalyst.{FunctionIdentifier, SQLConfHelper, TableIdentifier}
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.parser.{ParseErrorListener, ParseException, ParserInterface}
 import org.apache.spark.sql.catalyst.plans.logical._
@@ -17,7 +17,7 @@ import org.apache.spark.sql.types.{DataType, StructType}
 /**
  * Concrete parser for Hive SQL statements.
  */
-case class SparkAcidSqlParser(sparkParser: ParserInterface) extends ParserInterface with Logging {
+case class SparkAcidSqlParser(sparkParser: ParserInterface) extends ParserInterface with SQLConfHelper with Logging {
 
   override def parseExpression(sqlText: String): Expression = sparkParser.parseExpression(sqlText)
 
@@ -33,13 +33,6 @@ case class SparkAcidSqlParser(sparkParser: ParserInterface) extends ParserInterf
     val field = classOf[SparkSqlParser].getDeclaredField("substitutor")
     field.setAccessible(true)
     field.get(sparkParser).asInstanceOf[VariableSubstitution]
-  }
-
-  // FIXME scala reflection would be better
-  private val conf: SQLConf = {
-    val field = classOf[VariableSubstitution].getDeclaredField("org$apache$spark$sql$internal$VariableSubstitution$$conf")
-    field.setAccessible(true)
-    field.get(substitutor).asInstanceOf[SQLConf]
   }
 
   private val sparkAcidAstBuilder = new SparkSqlAstBuilder(conf)
@@ -117,5 +110,5 @@ case class SparkAcidSqlParser(sparkParser: ParserInterface) extends ParserInterf
 
   override def parseMultipartIdentifier(sqlText: String): Seq[String] = sparkParser.parseMultipartIdentifier(sqlText)
 
-  override def parseRawDataType(sqlText: String): DataType = sparkParser.parseRawDataType(sqlText)
+  //override def parseRawDataType(sqlText: String): DataType = sparkParser.parseRawDataType(sqlText)
 }

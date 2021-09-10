@@ -89,7 +89,7 @@ private[hive] object HiveAcidSearchArgument {
     case BinaryType => false
     case DateType | BinaryType | ByteType | IntegerType | LongType | ShortType
          | DoubleType | FloatType | _: DecimalType | BooleanType
-         | _: HiveStringType | TimestampType | StringType =>
+         | TimestampType | StringType =>
       true
     case _ => false
   }

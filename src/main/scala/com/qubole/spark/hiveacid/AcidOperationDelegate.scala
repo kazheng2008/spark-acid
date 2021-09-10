@@ -315,7 +315,6 @@ class HiveAcidOperationDelegate(val sparkSession: SparkSession,
     checkForSupport(HiveAcidOperation.DELETE)
     val (qualifiedPlan: LogicalPlan, resolvedDf: DataFrame) =
       SqlUtils.getDFQualified(sparkSession, readDF(true), "spark_catalog." + hiveAcidMetadata.fullyQualifiedName)
-    println("**********" + hiveAcidMetadata.fullyQualifiedName)
     val resolvedExpr = SqlUtils.resolveReferences(sparkSession,
       condition.expr,
       qualifiedPlan, failIfUnresolved = false)

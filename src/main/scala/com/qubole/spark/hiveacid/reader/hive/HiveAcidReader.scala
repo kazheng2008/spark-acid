@@ -53,7 +53,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SparkSession, functions}
-import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.{InternalRow, SQLConfHelper}
 import org.apache.spark.sql.catalyst.analysis.CastSupport
 import org.apache.spark.sql.catalyst.catalog.CatalogTablePartition
 import org.apache.spark.sql.catalyst.expressions._
@@ -77,7 +77,7 @@ private[reader] class HiveAcidReader(sparkSession: SparkSession,
                                      hiveAcidOptions: HiveAcidReaderOptions,
                                      validWriteIds: ValidWriteIdList)
 
-extends CastSupport with Reader with Logging {
+extends CastSupport with Reader with Logging with SQLConfHelper{
 
   private val _minSplitsPerRDD = if (sparkSession.sparkContext.isLocal) {
     0 // will be split based on block by default.

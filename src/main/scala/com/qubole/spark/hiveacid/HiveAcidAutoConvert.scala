@@ -51,9 +51,9 @@ case class HiveAcidAutoConvert(spark: SparkSession) extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = {
     plan resolveOperators {
       // Write path
-      case InsertIntoStatement(r: HiveTableRelation, partition, query, overwrite, ifPartitionNotExists)
+      case InsertIntoStatement(r: HiveTableRelation, partition, userSpecifiedCols, query, overwrite, ifPartitionNotExists)
         if query.resolved && DDLUtils.isHiveTable(r.tableMeta) && isConvertible(r) =>
-        InsertIntoStatement(convert(r), partition, query, overwrite, ifPartitionNotExists)
+        InsertIntoStatement(convert(r), partition, userSpecifiedCols, query, overwrite, ifPartitionNotExists)
 
       // Read path
       case relation: HiveTableRelation
